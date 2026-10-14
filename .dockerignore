@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+.env
+.env.*
+weights
+datasets
+artifacts
+mlruns
+dist
+build
+tests
+tools
