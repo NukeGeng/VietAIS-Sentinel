@@ -1,0 +1,54 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, "codex/**", "feat/**", "fix/**"]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  foundation:
+    name: foundation (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.5"
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --dev
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - run: uv run --locked pytest -q
+      - run: uv run --locked python tools/check_repository.py
+      - run: uv build
+  container:
+    name: container smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build -t sentinel:ci .
+      - name: Verify live but not ready for inference
+        shell: bash
+        run: |
+          docker run -d --name sentinel -p 127.0.0.1:8001:8001 sentinel:ci
+          trap 'docker logs sentinel; docker rm -f sentinel' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8001/health/live; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8001/health/live
+          test "$(curl --silent -o /tmp/ready.json -w '%{http_code}' http://127.0.0.1:8001/health/ready)" = 503
+          python3 -c 'import json; assert json.load(open("/tmp/ready.json"))["ready"] is False'
