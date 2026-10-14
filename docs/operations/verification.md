@@ -1,7 +1,7 @@
 # Verification record
 
 Owner: NukeGeng
-Status: local verification passed; remote CI pending
+Status: local verification and foundation CI passed
 Last verified: 2026-10-14, codex/bootstrap-oss.
 
 ## Scope
@@ -30,6 +30,9 @@ not claimed as passed until their actual results are available.
 
 ## CI
 
-Configuration includes Python 3.11/3.12 foundation checks and a container smoke job.
-Remote runs are pending until this branch is pushed and checks complete.
+On foundation commit 4c7f2395f4237816210dad1cea54df9a6af3d122, all three Linux jobs passed:
+Python 3.11, Python 3.12 and container build/smoke.
+[CI evidence](https://github.com/NukeGeng/VietAIS-Sentinel/actions/runs/38542967959).
+Container smoke verified HTTP 200 liveness and HTTP 503/ready=false as intended.
+These results cover that commit; subsequent changes require their own successful checks.
 Branch protection, required reviews and release permissions are not configured by this bootstrap.
